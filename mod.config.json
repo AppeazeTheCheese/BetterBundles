@@ -1,5 +1,5 @@
 {
-	"checkUpdateUrl": "",
+	"checkUpdateUrl": "https://raw.githubusercontent.com/AppeazeTheCheese/BetterBundles/main/updater.json",
 	"autoUpdate": true,
 	
 	"name": "BetterBundles",
