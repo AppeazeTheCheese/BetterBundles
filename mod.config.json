@@ -1,0 +1,12 @@
+{
+	"checkUpdateUrl": "",
+	"autoUpdate": true,
+	
+	"name": "BetterBundles",
+	"author": "AppeazeTheCheese",
+	"version": "1.0.0",
+	"license": "MIT",
+	"src": {
+		"src/init.js": "TamperModLoad"
+	}
+}
