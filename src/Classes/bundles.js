@@ -3,6 +3,7 @@
 const path = require('path');
 const rootFolder = path.resolve(path.join(__dirname, "../../../../../"));
 const modsFolder = path.resolve(path.join(rootFolder, "user/mods"));
+const resBundlesFolder = path.resolve(path.join(rootFolder, "res/bundles"));
 
 class BundlesServer {
     constructor() {
@@ -19,50 +20,47 @@ class BundlesServer {
 
         // Check if there is a "folders" or "files" property with items in the mod config
         this.bundles = [];
-        this.bundleBykey = [];
+        this.bundleBykey = {};
 
-        // Cache was possibly not cleared. Set up res.bundles.
-        if(res.bundles === undefined || Object.keys(res.bundles).length <= 0){
-            res.bundles = {};
-            res.bundles.files = {};
-            res.bundles.folders = {};
+        res.bundles = {files: {}, folders: {}};
 
-            var files = [];
-            var folders = [];
+        var files = [];
+        var folders = [];
 
-            var modFolders = fileIO.readDir(modsFolder);
-            for(var i in modFolders){
-                var fullPath = path.resolve(path.join(modsFolder, modFolders[i]));
-                if(!fileIO.lstatSync(fullPath).isDirectory()) continue;
+        var modFolders = fileIO.readDir(modsFolder);
+        for(var i in modFolders){
+            var fullPath = path.resolve(path.join(modsFolder, modFolders[i]));
+            if(!fileIO.lstatSync(fullPath).isDirectory()) continue;
 
-                var splitPath = fullPath.split(path.sep);
-                var folderName = splitPath[splitPath.length - 1];
-                var [author, modName, version] = folderName.split("-");
+            var splitPath = fullPath.split(path.sep);
+            var folderName = splitPath[splitPath.length - 1];
+            var [author, modName, version] = folderName.split("-");
 
-                var modConfig = modsConfig.filter(x => x.author === author && x.name === modName && x.version === version)[0];
+            var modConfig = modsConfig.filter(x => x.author === author && x.name === modName && x.version === version)[0];
 
-                // Check if mod is enabled without excluding undefined values
-                if(modConfig.enabled === false) continue;
-                var configPath = path.resolve(path.join(fullPath, "mod.config.json"));
-                if(!internal.fs.existsSync(configPath)) continue;
+            // Check if mod is enabled without excluding undefined values
+            if(modConfig !== undefined && modConfig.enabled === false) continue;
+            var configPath = path.resolve(path.join(fullPath, "mod.config.json"));
+            if(!internal.fs.existsSync(configPath)) continue;
 
-                var config = fileIO.readParsed(configPath);
-                if(config.res !== undefined && config.res.bundles !== undefined){
-                    if(config.res.bundles.files !== undefined){
-                        for(var p in config.res.bundles.files){
-                            files.push(path.join("user/mods", folderName, config.res.bundles.files[p]));
-                        }
+            var config = fileIO.readParsed(configPath);
+            if(config.res !== undefined && config.res.bundles !== undefined){
+                if(config.res.bundles.files !== undefined){
+                    for(var p in config.res.bundles.files){
+                        files.push(path.join("user/mods", folderName, config.res.bundles.files[p]));
                     }
-                    if(config.res.bundles.folders !== undefined){
-                        for(var p in config.res.bundles.folders){
-                            folders.push(path.join("user/mods", folderName, config.res.bundles.folders[p]));
-                        }
+                }
+                if(config.res.bundles.folders !== undefined){
+                    for(var p in config.res.bundles.folders){
+                        folders.push(path.join("user/mods", folderName, config.res.bundles.folders[p]));
                     }
                 }
             }
-            res.bundles.files = Object.assign({}, files);
-            res.bundles.folders = Object.assign({}, folders);
         }
+        if(internal.fs.existsSync(resBundlesFolder))
+            folders.push('res\\bundles');
+        res.bundles.files = Object.assign({}, files);
+        res.bundles.folders = Object.assign({}, folders);
         if(res.bundles.folders !== undefined && Object.keys(res.bundles.folders).length > 0){
             for(var f of Object.keys(res.bundles.folders)){
                 var fullPath = path.join(rootFolder, res.bundles.folders[f]);
@@ -84,7 +82,13 @@ class BundlesServer {
 
     loadBundle(itemPath){
         var fullItemPath = path.resolve(itemPath);
-        var key = fullItemPath.replace(/\\/g, "/").split(/\/user\/mods\//i)[1];
+        var uniformPath = fullItemPath.replace(/\\/g, "/");
+        var key = undefined;
+
+        if(uniformPath.toLowerCase().includes("/user/mods/"))
+            key = uniformPath.split(/\/user\/mods\//i)[1];
+        else if(uniformPath.toLowerCase().includes("/res/bundles/"))
+            key = uniformPath.split(/\/res\/bundles\//i)[1];
         
         if(this.bundleBykey !== undefined && this.bundleBykey[key] !== undefined) return;
         var manifestFile = itemPath + ".manifest";
@@ -96,7 +100,7 @@ class BundlesServer {
         var bundle = {
             "key": key,
             "path": `${this.backendUrl}/files/bundle/${key}`,
-            "filePath": fullItemPath.replace(/\\/g, "/"),
+            "filePath": uniformPath,
             "dependencyKeys": dependencyKeys
         }
         this.bundles.push(bundle);
