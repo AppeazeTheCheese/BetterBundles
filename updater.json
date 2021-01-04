@@ -1,9 +1,9 @@
 {
   "name": "BetterBundles",
   "author": "AppeazeTheCheese",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "forceDowngrade": false,
-  "downloadUpdateUrl": "https://github.com/AppeazeTheCheese/BetterBundles/archive/1.0.0.zip",
+  "downloadUpdateUrl": "https://github.com/AppeazeTheCheese/BetterBundles/archive/1.0.1.zip",
   "excludeFromUpdate":[
     "updater.json"
   ]
